@@ -19,6 +19,7 @@ module Criterion.Measurement
     , getCPUTime
     , getCycles
     , getGCStats
+    , getEnergy
     , secs
     , measure
     , runBenchmark
@@ -55,15 +56,18 @@ measure (Benchmarkable run) iters = do
   startTime <- getTime
   startCpuTime <- getCPUTime
   startCycles <- getCycles
+  startEnergy <- getEnergy
   run iters
   endTime <- getTime
   endCpuTime <- getCPUTime
   endCycles <- getCycles
+  endEnergy <- getEnergy
   endStats <- getGCStats
   let !m = applyGCStats endStats startStats $ measured {
              measTime    = max 0 (endTime - startTime)
            , measCpuTime = max 0 (endCpuTime - startCpuTime)
            , measCycles  = max 0 (fromIntegral (endCycles - startCycles))
+           , measEnergy  = max 0 (endEnergy - startEnergy)
            , measIters   = iters
            }
   return (m, endTime)
@@ -134,6 +138,7 @@ measured = Measured {
     , measCpuTime            = 0
     , measCycles             = 0
     , measIters              = 0
+    , measEnergy             = 0
 
     , measAllocated          = minBound
     , measNumGcs             = minBound
@@ -204,3 +209,6 @@ foreign import ccall unsafe "criterion_gettime" getTime :: IO Double
 -- | Return the amount of elapsed CPU time, combining user and kernel
 -- (system) time into a single measure.
 foreign import ccall unsafe "criterion_getcputime" getCPUTime :: IO Double
+
+-- | Return the amount of energy consumed
+foreign import ccall unsafe "criterion_getenergypacket" getEnergy :: IO Double

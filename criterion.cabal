@@ -58,7 +58,7 @@ library
   other-modules:
     Criterion.Monad.Internal
 
-  c-sources: cbits/cycles.c
+  c-sources: cbits/cycles.c, cbits/energy-rapl.c, cbits/rapl.c
   if os(darwin)
     c-sources: cbits/time-osx.c
   else {

@@ -138,6 +138,8 @@ data Measured = Measured {
     , measCpuTime            :: !Double
       -- ^ Total CPU time elapsed, in seconds.  Includes both user and
       -- kernel (system) time.
+    , measEnergy             :: !Double
+      -- ^ Energy consumed
     , measCycles             :: !Int64
       -- ^ Cycles, in unspecified units that may be CPU cycles.  (On
       -- i386 and x86_64, this is measured using the @rdtsc@
@@ -170,12 +172,12 @@ data Measured = Measured {
 
 instance FromJSON Measured where
     parseJSON v = do
-      (a,b,c,d,e,f,g,h,i,j,k) <- parseJSON v
-      return $ Measured a b c d e f g h i j k
+      (a,b,c,d,e,f,g,h,i,j,k,l) <- parseJSON v
+      return $ Measured a b c d e f g h i j k l
 
 instance ToJSON Measured where
     toJSON Measured{..} = toJSON
-      (measTime, measCpuTime, measCycles, measIters,
+      (measTime, measCpuTime, measEnergy, measCycles, measIters,
        i measAllocated, i measNumGcs, i measBytesCopied,
        d measMutatorWallSeconds, d measMutatorCpuSeconds,
        d measGcWallSeconds, d measMutatorCpuSeconds)
@@ -195,6 +197,8 @@ measureAccessors_ = [
                             "wall-clock time"))
   , ("cpuTime",            (Just . measCpuTime,
                             "CPU time"))
+  , ("energy",             (Just . measEnergy,
+                            "Energy consumed"))
   , ("cycles",             (Just . fromIntegral . measCycles,
                             "CPU cycles"))
   , ("iters",              (Just . fromIntegral . measIters,
@@ -231,6 +235,7 @@ rescale :: Measured -> Measured
 rescale m@Measured{..} = m {
       measTime               = d measTime
     , measCpuTime            = d measCpuTime
+    , measEnergy             = d measEnergy
     , measCycles             = i measCycles
     -- skip measIters
     , measNumGcs             = i measNumGcs
@@ -272,11 +277,11 @@ toDouble (Just d) = d
 
 instance Binary Measured where
     put Measured{..} = do
-      put measTime; put measCpuTime; put measCycles; put measIters
+      put measTime; put measCpuTime; put measCycles; put measEnergy; put measIters
       put measAllocated; put measNumGcs; put measBytesCopied
       put measMutatorWallSeconds; put measMutatorCpuSeconds
       put measGcWallSeconds; put measGcCpuSeconds
-    get = Measured <$> get <*> get <*> get <*> get
+    get = Measured <$> get <*> get <*> get <*> get <*> get
                    <*> get <*> get <*> get <*> get <*> get <*> get <*> get
 
 -- | Apply an argument to a function, and evaluate the result to weak
@@ -569,6 +574,7 @@ data SampleAnalysis = SampleAnalysis {
     , anOutlierVar :: OutlierVariance
       -- ^ Description of the effects of outliers on the estimated
       -- variance.
+    , anEnergy     :: Double
     } deriving (Eq, Read, Show, Typeable, Data, Generic)
 
 instance FromJSON SampleAnalysis
@@ -576,8 +582,8 @@ instance ToJSON SampleAnalysis
 
 instance Binary SampleAnalysis where
     put SampleAnalysis{..} = do
-      put anRegress; put anOverhead; put anMean; put anStdDev; put anOutlierVar
-    get = SampleAnalysis <$> get <*> get <*> get <*> get <*> get
+      put anRegress; put anOverhead; put anMean; put anStdDev; put anOutlierVar; put anEnergy
+    get = SampleAnalysis <$> get <*> get <*> get <*> get <*> get <*> get
 
 instance NFData SampleAnalysis where
     rnf SampleAnalysis{..} =
