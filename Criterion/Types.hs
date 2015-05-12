@@ -277,7 +277,7 @@ toDouble (Just d) = d
 
 instance Binary Measured where
     put Measured{..} = do
-      put measTime; put measCpuTime; put measCycles; put measEnergy; put measIters
+      put measTime; put measCpuTime; put measEnergy; put measCycles; put measIters
       put measAllocated; put measNumGcs; put measBytesCopied
       put measMutatorWallSeconds; put measMutatorCpuSeconds
       put measGcWallSeconds; put measGcCpuSeconds
