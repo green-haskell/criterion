@@ -169,30 +169,33 @@ applyGCStats (Just end) (Just start) m = m {
   } where diff f = f end - f start
 applyGCStats _ _ m = m
 
--- | Convert a number of seconds to a string.  The string will consist
--- of four decimal places, followed by a short description of the time
--- units.
-secs :: Double -> String
-secs k
-    | k < 0      = '-' : secs (-k)
-    | k >= 1     = k        `with` "s"
-    | k >= 1e-3  = (k*1e3)  `with` "ms"
+-- | Convert a number of units to a string. The string will consist of
+-- four decimal places, followed by a short description of the units.
+units ::  Double -> String -> String
+units k un
+    | k < 0      = '-' : units (-k) un
+    | k >= 1     = k        `with` un
+    | k >= 1e-3  = (k*1e3)  `with` ("m" ++ un)
 #ifdef mingw32_HOST_OS
-    | k >= 1e-6  = (k*1e6)  `with` "us"
+    | k >= 1e-6  = (k*1e6)  `with` ("u" ++ un)
 #else
-    | k >= 1e-6  = (k*1e6)  `with` "μs"
+    | k >= 1e-6  = (k*1e6)  `with` ("μ" ++ un)
 #endif
-    | k >= 1e-9  = (k*1e9)  `with` "ns"
-    | k >= 1e-12 = (k*1e12) `with` "ps"
-    | k >= 1e-15 = (k*1e15) `with` "fs"
-    | k >= 1e-18 = (k*1e18) `with` "as"
-    | otherwise  = printf "%g s" k
+    | k >= 1e-9  = (k*1e9)  `with` ("n" ++ un)
+    | k >= 1e-12 = (k*1e12) `with` ("p" ++ un)
+    | k >= 1e-15 = (k*1e15) `with` ("f" ++ un)
+    | k >= 1e-18 = (k*1e18) `with` ("a" ++ un)
+    | otherwise  = printf ("%g " ++ un) k
      where with (t :: Double) (u :: String)
                | t >= 1e9  = printf "%.4g %s" t u
                | t >= 1e3  = printf "%.0f %s" t u
                | t >= 1e2  = printf "%.1f %s" t u
                | t >= 1e1  = printf "%.2f %s" t u
                | otherwise = printf "%.3f %s" t u
+
+-- | Convert a number of seconds to a string.
+secs :: Double -> String
+secs k = units k "s"
 
 -- | Set up time measurement.
 foreign import ccall unsafe "criterion_inittime" initializeTime :: IO ()
