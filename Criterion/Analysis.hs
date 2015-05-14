@@ -137,7 +137,7 @@ analyseSample :: Int            -- ^ Experiment number.
               -> ExceptT String Criterion Report
 analyseSample i name meas = do
   Config{..} <- ask
-  overhead <- lift getOverhead
+  (overhead, _) <- lift getOverhead
   let ests      = [Mean,StdDev]
       -- The use of filter here throws away very-low-quality
       -- measurements when bootstrapping the mean and standard

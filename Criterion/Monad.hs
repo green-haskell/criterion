@@ -19,7 +19,7 @@ module Criterion.Monad
 import Control.Monad.Reader (asks, runReaderT)
 import Control.Monad.Trans (liftIO)
 import Control.Monad (when)
-import Criterion.Measurement (measure, runBenchmark, secs)
+import Criterion.Measurement (measure, runBenchmark, secs, joules)
 import Criterion.Monad.Internal (Criterion(..), Crit(..))
 import Criterion.Types hiding (measure)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
@@ -42,17 +42,19 @@ getGen :: Criterion GenIO
 getGen = memoise gen createSystemRandom
 
 -- | Return an estimate of the measurement overhead.
-getOverhead :: Criterion Double
+getOverhead :: Criterion (Double, Double)
 getOverhead = do
   verbose <- asks ((== Verbose) . verbosity)
   memoise overhead $ do
     (meas,_) <- runBenchmark (whnfIO $ measure (whnfIO $ return ()) 1) 1
     let metric get = G.convert . G.map get $ meas
-    let o = G.head . fst $
-            olsRegress [metric (fromIntegral . measIters)] (metric measTime)
+    let o field = G.head . fst $
+            olsRegress [metric (fromIntegral . measIters)] (metric field)
+    let ot = o measTime
+    let oe = o measEnergy
     when verbose . liftIO $
-      putStrLn $ "measurement overhead " ++ secs o
-    return o
+      putStrLn $ "measurement overhead " ++ (secs ot) ++ " / " ++ (joules oe)
+    return (ot, oe)
 
 -- | Memoise the result of an 'IO' action.
 --

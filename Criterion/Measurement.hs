@@ -21,6 +21,7 @@ module Criterion.Measurement
     , getGCStats
     , getEnergy
     , secs
+    , joules
     , measure
     , runBenchmark
     , measured
@@ -196,6 +197,10 @@ units k un
 -- | Convert a number of seconds to a string.
 secs :: Double -> String
 secs k = units k "s"
+
+-- | Convert a number of joules to a string.
+joules :: Double -> String
+joules k = units k "J"
 
 -- | Set up time measurement.
 foreign import ccall unsafe "criterion_inittime" initializeTime :: IO ()
