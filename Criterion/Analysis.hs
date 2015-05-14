@@ -157,14 +157,12 @@ analyseSample i name meas = do
   resamps <- liftIO $ resample gen ests resamples stime
   let [estMean,estStdDev] = B.bootstrapBCA confInterval stime ests resamps
       ov = outlierVariance estMean estStdDev (fromIntegral n)
-      energy = (V.sum $ V.map (measEnergy) meas) / (fromIntegral n)
       an = SampleAnalysis {
                anRegress    = rs
              , anOverhead   = overhead
              , anMean       = estMean
              , anStdDev     = estStdDev
              , anOutlierVar = ov
-             , anEnergy     = energy
              }
   return Report {
       reportNumber   = i

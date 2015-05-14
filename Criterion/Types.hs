@@ -574,7 +574,6 @@ data SampleAnalysis = SampleAnalysis {
     , anOutlierVar :: OutlierVariance
       -- ^ Description of the effects of outliers on the estimated
       -- variance.
-    , anEnergy     :: Double
     } deriving (Eq, Read, Show, Typeable, Data, Generic)
 
 instance FromJSON SampleAnalysis
@@ -582,8 +581,8 @@ instance ToJSON SampleAnalysis
 
 instance Binary SampleAnalysis where
     put SampleAnalysis{..} = do
-      put anRegress; put anOverhead; put anMean; put anStdDev; put anOutlierVar; put anEnergy
-    get = SampleAnalysis <$> get <*> get <*> get <*> get <*> get <*> get
+      put anRegress; put anOverhead; put anMean; put anStdDev; put anOutlierVar
+    get = SampleAnalysis <$> get <*> get <*> get <*> get <*> get
 
 instance NFData SampleAnalysis where
     rnf SampleAnalysis{..} =
