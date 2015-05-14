@@ -574,7 +574,6 @@ data SampleAnalysis = SampleAnalysis {
     , anOutlierVar :: OutlierVariance
       -- ^ Description of the effects of outliers on the estimated
       -- variance.
-    , anEnergy     :: Double
     } deriving (Eq, Read, Show, Typeable, Data, Generic)
 
 instance FromJSON SampleAnalysis
@@ -582,8 +581,8 @@ instance ToJSON SampleAnalysis
 
 instance Binary SampleAnalysis where
     put SampleAnalysis{..} = do
-      put anRegress; put anOverhead; put anMean; put anStdDev; put anOutlierVar; put anEnergy
-    get = SampleAnalysis <$> get <*> get <*> get <*> get <*> get <*> get
+      put anRegress; put anOverhead; put anMean; put anStdDev; put anOutlierVar
+    get = SampleAnalysis <$> get <*> get <*> get <*> get <*> get
 
 instance NFData SampleAnalysis where
     rnf SampleAnalysis{..} =
@@ -620,11 +619,17 @@ data Report = Report {
       -- estimated measurement overhead that can be found via the
       -- 'anOverhead' field of 'reportAnalysis'.
     , reportAnalysis :: SampleAnalysis
-      -- ^ Report analysis.
+      -- ^ Report execution time analysis.
     , reportOutliers :: Outliers
-      -- ^ Analysis of outliers.
+      -- ^ Analysis of execution time outliers.
     , reportKDEs     :: [KDE]
-      -- ^ Data for a KDE of times.
+      -- ^ Data for a KDE of execution times.
+    , reportEnergyAnalysis :: SampleAnalysis
+      -- ^ Report energy consumption analysis.
+    , reportEnergyOutliers :: Outliers
+      -- ^ Analysis of energy consumption outliers.
+    , reportEnergyKDEs     :: [KDE]
+      -- ^ Data for a KDE of energy consumption.
     } deriving (Eq, Read, Show, Typeable, Data, Generic)
 
 instance FromJSON Report
@@ -634,15 +639,17 @@ instance Binary Report where
     put Report{..} =
       put reportNumber >> put reportName >> put reportKeys >>
       put reportMeasured >> put reportAnalysis >> put reportOutliers >>
-      put reportKDEs
+      put reportKDEs >> put reportEnergyAnalysis >> put reportEnergyOutliers >>
+      put reportEnergyKDEs
 
-    get = Report <$> get <*> get <*> get <*> get <*> get <*> get <*> get
+    get = Report <$> get <*> get <*> get <*> get <*> get <*> get <*> get <*> get <*> get <*> get
 
 instance NFData Report where
     rnf Report{..} =
       rnf reportNumber `seq` rnf reportName `seq` rnf reportKeys `seq`
       rnf reportMeasured `seq` rnf reportAnalysis `seq` rnf reportOutliers `seq`
-      rnf reportKDEs
+      rnf reportKDEs `seq` rnf reportEnergyAnalysis `seq` rnf reportEnergyOutliers `seq`
+      rnf reportEnergyKDEs
 
 data DataRecord = Measurement (V.Vector Measured)
                 | Analysed Report

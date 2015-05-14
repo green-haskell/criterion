@@ -77,7 +77,6 @@ runAndAnalyseOne i desc bm = do
           Just t  -> bs secs "time" t >> bs r2 "" regRSquare
       bs secs "mean" anMean
       bs secs "std dev" anStdDev
-      note "%-20s %-10s\n" "energy" (show anEnergy)
       forM_ others $ \Regression{..} -> do
         _ <- bs r2 (regResponder ++ ":") regRSquare
         forM_ (Map.toList regCoeffs) $ \(prd,val) ->

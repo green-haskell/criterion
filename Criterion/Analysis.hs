@@ -137,43 +137,61 @@ analyseSample :: Int            -- ^ Experiment number.
               -> ExceptT String Criterion Report
 analyseSample i name meas = do
   Config{..} <- ask
-  (overhead, _) <- lift getOverhead
+  (toverhead, eoverhead) <- lift getOverhead
   let ests      = [Mean,StdDev]
       -- The use of filter here throws away very-low-quality
       -- measurements when bootstrapping the mean and standard
       -- deviations.  Without this, the numbers look nonsensical when
       -- very brief actions are measured.
-      stime     = measure (measTime . rescale) .
-                  G.filter ((>= threshold) . measTime) . G.map fixTime .
+      sboth     = measure ((\x -> (measTime x, measEnergy x)) . rescale) .
+                  G.filter ((>= threshold) . measTime) . G.map fix .
                   G.tail $ meas
-      fixTime m = m { measTime = measTime m - overhead / 2 }
+      fix m     = m { measTime = measTime m - toverhead / 2
+                    , measEnergy = measEnergy m - eoverhead / 2 }
+      stime     = G.map fst sboth
+      senergy   = G.map snd sboth
       n         = G.length meas
       s         = G.length stime
   _ <- lift $ prolix "bootstrapping with %d of %d samples (%d%%)\n"
               s n ((s * 100) `quot` n)
   gen <- lift getGen
-  rs <- mapM (\(ps,r) -> regress gen ps r meas) $
+  trs <- mapM (\(ps,r) -> regress gen ps r meas) $
         ((["iters"],"time"):regressions)
-  resamps <- liftIO $ resample gen ests resamples stime
-  let [estMean,estStdDev] = B.bootstrapBCA confInterval stime ests resamps
+  tresamps <- liftIO $ resample gen ests resamples stime
+  let [estMean,estStdDev] = B.bootstrapBCA confInterval stime ests tresamps
       ov = outlierVariance estMean estStdDev (fromIntegral n)
-      energy = (V.sum $ V.map (measEnergy) meas) / (fromIntegral n)
       an = SampleAnalysis {
-               anRegress    = rs
-             , anOverhead   = overhead
+               anRegress    = trs
+             , anOverhead   = toverhead
              , anMean       = estMean
              , anStdDev     = estStdDev
              , anOutlierVar = ov
-             , anEnergy     = energy
              }
+
+  ers <- mapM (\(ps,r) -> regress gen ps r meas) $
+        ((["iters"],"energy"):regressions)
+  eresamps <- liftIO $ resample gen ests resamples senergy
+  let [estMean',estStdDev'] = B.bootstrapBCA confInterval senergy ests eresamps
+      ov' = outlierVariance estMean' estStdDev' (fromIntegral n)
+      an' = SampleAnalysis {
+               anRegress    = ers
+             , anOverhead   = eoverhead
+             , anMean       = estMean'
+             , anStdDev     = estStdDev'
+             , anOutlierVar = ov'
+             }
+
   return Report {
-      reportNumber   = i
-    , reportName     = name
-    , reportKeys     = measureKeys
-    , reportMeasured = meas
-    , reportAnalysis = an
-    , reportOutliers = classifyOutliers stime
-    , reportKDEs     = [uncurry (KDE "time") (kde 128 stime)]
+      reportNumber         = i
+    , reportName           = name
+    , reportKeys           = measureKeys
+    , reportMeasured       = meas
+    , reportAnalysis       = an
+    , reportOutliers       = classifyOutliers stime
+    , reportKDEs           = [uncurry (KDE "time") (kde 128 stime)]
+    , reportEnergyAnalysis = an'
+    , reportEnergyOutliers = classifyOutliers senergy
+    , reportEnergyKDEs     = [uncurry (KDE "energy") (kde 128 senergy)]
     }
 
 -- | Regress the given predictors against the responder.
