@@ -50,7 +50,7 @@ import Criterion.IO.Printf (printError, writeCsv)
 import Criterion.Internal (runAndAnalyse, runFixedIters)
 import Criterion.Main.Options (MatchType(..), Mode(..), defaultConfig, describe,
                                versionInfo)
-import Criterion.Measurement (initializeTime)
+import Criterion.Measurement (initializeTime, initializeRAPL, finishRAPL)
 import Criterion.Monad (withConfig)
 import Criterion.Types
 import Data.List (isPrefixOf, sort, stripPrefix)
@@ -144,7 +144,9 @@ defaultMainWith defCfg bs = do
         writeCsv ("Name","Mean","MeanLB","MeanUB","Stddev","StddevLB",
                   "StddevUB")
         liftIO initializeTime
+        liftIO initializeRAPL
         runAndAnalyse shouldRun bsgroup
+        liftIO finishRAPL
 
 -- | Display an error message from a command line parsing failure, and
 -- exit.

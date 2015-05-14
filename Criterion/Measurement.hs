@@ -19,7 +19,9 @@ module Criterion.Measurement
     , getCPUTime
     , getCycles
     , getGCStats
+    , initializeRAPL
     , getEnergy
+    , finishRAPL
     , secs
     , measure
     , runBenchmark
@@ -210,5 +212,11 @@ foreign import ccall unsafe "criterion_gettime" getTime :: IO Double
 -- (system) time into a single measure.
 foreign import ccall unsafe "criterion_getcputime" getCPUTime :: IO Double
 
+-- | Set up energy measurement.
+foreign import ccall unsafe "criterion_initrapl" initializeRAPL :: IO ()
+
 -- | Return the amount of energy consumed
 foreign import ccall unsafe "criterion_getenergypacket" getEnergy :: IO Double
+
+-- | Finish energy measurement.
+foreign import ccall unsafe "criterion_finishrapl" finishRAPL :: IO ()
