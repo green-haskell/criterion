@@ -11,12 +11,22 @@ pthread_t thread;
 
 void *thread_sum_energy_packet(void *arg)
 {
+    struct rapl_power_diff diff;
+    struct rapl_raw_power_counters prev, next;
+    rapl_get_raw_power_counters(fd_msr, &r_units, &prev);
+
     for (;;)
     {
         sleep(15);
-        struct rapl_raw_power_counters rpc;
-        rapl_get_raw_power_counters(fd_msr, &r_units, &rpc);
-        energy_sum += rapl_get_energy(&rpc);
+
+        rapl_get_raw_power_counters(fd_msr, &r_units, &next);
+        rapl_get_power_diff(&prev, &next, &diff);
+
+        if (diff.pkg < 0)
+            continue;
+
+        prev = next;
+        energy_sum += diff.pkg;
     }
 }
 
