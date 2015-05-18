@@ -80,18 +80,40 @@ char rapl_get_units(int fd_msr, struct rapl_units * ru) {
 	if (!rapl_read_msr(fd_msr, MSR_RAPL_POWER_UNIT, &data))
 		return 0;
 	
-	//ru->power_units= pow(0.5,(double)( (data>>RAPL_POWER_UNIT_OFFSET)  & RAPL_POWER_UNIT_MASK ) );
+	ru->power_units= pow(0.5,(double)( (data>>RAPL_POWER_UNIT_OFFSET)  & RAPL_POWER_UNIT_MASK ) );
 	ru->energy_units=pow(0.5,(double)( (data>>RAPL_ENERGY_UNIT_OFFSET) & RAPL_ENERGY_UNIT_MASK ) );
-	//ru->time_units=  pow(0.5,(double)( (data>>RAPL_TIME_UNIT_OFFSET)   & RAPL_TIME_UNIT_MASK ) );
+	ru->time_units=  pow(0.5,(double)( (data>>RAPL_TIME_UNIT_OFFSET)   & RAPL_TIME_UNIT_MASK ) );
 	
 	return 1;
 }
 
 void rapl_print_units(struct rapl_units * ru) {
+	printf("Power units = %.3f W\n",ru->power_units);
 	printf("Energy units = %.8f J\n",ru->energy_units);
+	printf("Time units = %.8f s\n",ru->time_units);
 	printf("\n");
 }
 
+char rapl_get_pkg_power_info(int fd_msr, struct rapl_units * ru, struct rapl_pkg_power_info * pinfo) {
+	unsigned long long data;
+	
+	if (!rapl_read_msr(fd_msr, MSR_PKG_POWER_INFO, &data))
+		return 0;
+	
+	pinfo->thermal_spec_power=ru->power_units*(double)((data>>RAPL_THERMAL_SPEC_POWER_OFFSET) & RAPL_THERMAL_SPEC_POWER_MASK);
+	pinfo->minimum_power=     ru->power_units*(double)((data>>RAPL_MINIMUM_POWER_OFFSET)      & RAPL_MINIMUM_POWER_MASK);
+	pinfo->maximum_power=     ru->power_units*(double)((data>>RAPL_MAXIMUM_POWER_OFFSET)      & RAPL_MAXIMUM_POWER_MASK);
+	pinfo->time_window=       ru->time_units* (double)((data>>RAPL_MAXIMUM_TIME_WINDOW_OFFSET)& RAPL_MAXIMUM_TIME_WINDOW_MASK);
+	
+	return 1;
+}
+
+void rapl_print_pkg_power_info(struct rapl_pkg_power_info * pinfo) {
+	printf("Package thermal spec: %.3f W\n",  pinfo->thermal_spec_power);
+	printf("Package minimum power: %.3f W\n", pinfo->minimum_power);
+	printf("Package maximum power: %.3f W\n", pinfo->maximum_power);
+	printf("Package maximum time window: %.3f s\n", pinfo->time_window);
+}
 
 // see http://stackoverflow.com/questions/6491566/getting-machine-serial-number-and-cpu-id-using-c-c-in-linux
 int rapl_get_cpu_id() {
@@ -151,7 +173,6 @@ char rapl_available() {
 	return 0;
 }
 
-
 void rapl_get_raw_power_counters(int fd_msr, struct rapl_units * runits, struct rapl_raw_power_counters * pc) {
 	unsigned long long data;
 	
@@ -160,36 +181,68 @@ void rapl_get_raw_power_counters(int fd_msr, struct rapl_units * runits, struct 
 	else
 		pc->pkg = -1;
 	
-	//if (rapl_read_msr(fd_msr, MSR_PP0_ENERGY_STATUS, &data))
-		//pc->pp0 = (double)(data & MSR_ENERGY_STATUS_MASK) * runits->energy_units;
-	//else
-		//pc->pp0 = -1;
+	if (rapl_read_msr(fd_msr, MSR_PP0_ENERGY_STATUS, &data))
+		pc->pp0 = (double)(data & MSR_ENERGY_STATUS_MASK) * runits->energy_units;
+	else
+		pc->pp0 = -1;
 	
-	//if (rapl_read_msr(fd_msr, MSR_PP1_ENERGY_STATUS, &data))
-		//pc->pp1 = (double)(data & MSR_ENERGY_STATUS_MASK) * runits->energy_units;
-	//else
-		//pc->pp1 = -1;
-
+	if (rapl_read_msr(fd_msr, MSR_PP1_ENERGY_STATUS, &data))
+		pc->pp1 = (double)(data & MSR_ENERGY_STATUS_MASK) * runits->energy_units;
+	else
+		pc->pp1 = -1;
+	
+	if (rapl_read_msr(fd_msr, MSR_DRAM_ENERGY_STATUS, &data))
+		pc->dram = (double)(data & MSR_ENERGY_STATUS_MASK) * runits->energy_units;
+	else
+		pc->dram = -1;
 }
 
+void rapl_get_power_diff(struct rapl_raw_power_counters * start, struct rapl_raw_power_counters * stop,
+		struct rapl_power_diff * pd)
+{
+	if (rapl_pkg_available())
+		pd->pkg = stop->pkg - start->pkg;
+	else
+		pd->pkg = -1;
+	
+	if (rapl_pp0_available())
+		pd->cpu = stop->pp0 - start->pp0;
+	else
+		pd->cpu = -1;
+	
+	if (rapl_pp1_available())
+		pd->gpu = stop->pp1 - start->pp1;
+	else
+		pd->gpu = -1;
+	
+	if (rapl_dram_available())
+		pd->dram = stop->dram - start->dram;
+	else
+		pd->dram = -1;
+	
+	if (rapl_uncore_available())
+		pd->uncore = pd->pkg - ( pd->cpu + pd->gpu );
+	else
+		pd->uncore = -1;
+}
+
+void rapl_print_power_diff(struct rapl_power_diff * pd) {
+	if (pd->pkg > -1) printf("Package: %f J\n", pd->pkg);
+	if (pd->cpu > -1) printf("CPU: %f J\n", pd->cpu);
+	if (pd->gpu > -1) printf("GPU: %f J\n", pd->gpu);
+	if (pd->dram > -1) printf("DRAM: %f J\n", pd->dram);
+	if (pd->uncore > -1) printf("Uncore: %f J\n", pd->uncore);
+}
 
 void rapl_print_raw_power_counters (int fd_msr, struct rapl_units * runits) {
 	RAPL_PRINT_ENERGY_STATUS(fd_msr, runits, MSR_PKG_ENERGY_STATUS);
-	//RAPL_PRINT_ENERGY_STATUS(fd_msr, runits, MSR_PP0_ENERGY_STATUS);
-	//RAPL_PRINT_ENERGY_STATUS(fd_msr, runits, MSR_PP1_ENERGY_STATUS);
-
+	RAPL_PRINT_ENERGY_STATUS(fd_msr, runits, MSR_PP0_ENERGY_STATUS);
+	RAPL_PRINT_ENERGY_STATUS(fd_msr, runits, MSR_PP1_ENERGY_STATUS);
+	
+	if (rapl_dram_available()) {
+		RAPL_PRINT_ENERGY_STATUS(fd_msr, runits, MSR_DRAM_ENERGY_STATUS);
+	}
 }
-
-///////////////////////
-
-double rapl_get_energy( struct rapl_raw_power_counters *pc ) {
-
-    return pc->pkg;
-
-}
-
-
-///////////////////////
 
 char rapl_pkg_available() {
 	return 1;
