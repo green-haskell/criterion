@@ -36,6 +36,7 @@ import Data.List (unfoldr)
 import Data.Word (Word64)
 import GHC.Stats (GCStats(..))
 import System.Mem (performGC)
+import System.IO (hPutStrLn, stderr)
 import Text.Printf (printf)
 import qualified Control.Exception as Exc
 import qualified Data.Vector as V
@@ -71,7 +72,7 @@ measure b@(Benchmarkable run) iters = do
       let st = show startEnergy
           ed = show endEnergy
           it = show iters
-      putStrLn $ "OVERFLOW DETECTED! start: " ++ st ++ ". end: " ++ ed ++ ". niters: " ++ it
+      hPutStrLn stderr $ "OVERFLOW DETECTED! start: " ++ st ++ ". end: " ++ ed ++ ". niters: " ++ it
       measure b iters
     else do
       let !m = applyGCStats endStats startStats $ measured {
