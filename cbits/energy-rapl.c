@@ -31,7 +31,8 @@ void criterion_initrapl(void)
     num_packages = 0;
 
     // Fill with placeholders
-    for (int i = 0; i < nr_cpus; i++)
+    int i;
+    for (i = 0; i < nr_cpus; i++)
         cpu_to_use[i] = -1;
 
     int j = 0;
@@ -63,7 +64,7 @@ void criterion_initrapl(void)
 
     printf("Total packages found: %d\n", num_packages);
 
-    for (int i = 0; i < num_packages; i++) {
+    for (i = 0; i < num_packages; i++) {
         fd_msr[i] = rapl_open_msr(cpu_to_use[i]);
         if (fd_msr[i] <= 0) {
             char msg[256];
@@ -85,7 +86,8 @@ double criterion_getenergypacket(void)
     struct rapl_raw_power_counters rpc;
     double total_package_energy = 0.0;
 
-    for (int i = 0; i < num_packages; i++) {
+    int i;
+    for (i = 0; i < num_packages; i++) {
         rapl_get_raw_power_counters(fd_msr[i], &r_units, &rpc);
         total_package_energy += rpc.pkg;
     }
@@ -95,6 +97,7 @@ double criterion_getenergypacket(void)
 
 void criterion_finishrapl(void)
 {
-    for (int i = 0; i < num_packages; i++)
+    int i;
+    for (i = 0; i < num_packages; i++)
         close(fd_msr[i]);
 }
