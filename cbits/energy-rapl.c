@@ -22,7 +22,7 @@ double criterion_getenergypacket(void)
 
     rapl_get_raw_power_counters(fd_msr, &r_units, &rpc);
 
-    return rapl_get_energy(&rpc);
+    return rpc.pkg;
 }
 
 void criterion_finishrapl(void)
