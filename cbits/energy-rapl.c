@@ -62,7 +62,11 @@ void criterion_initrapl(void)
        j++;
     }
 
-    printf("Total packages found: %d\n", num_packages);
+    //printf("Total packages found: %d\n", num_packages);
+    //printf("CPUs used: ");
+    //for (i = 0; i < num_packages; i++)
+    //    printf("%d%s", cpu_to_use[i], i == (num_packages-1) ? "" : ", ");
+    //printf("\n");
 
     for (i = 0; i < num_packages; i++) {
         fd_msr[i] = rapl_open_msr(cpu_to_use[i]);
