@@ -1,13 +1,24 @@
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/time.h>
 #include "rapl.h"
 
-#define MAX_PACKAGES 32
+#define MAX_PACKAGES  32
+#define TICK_INTERVAL 10  // in ms
 
 static int fd_msr[MAX_PACKAGES];
 static struct rapl_units r_units;
 static int units_ok;
 static int num_packages;
+
+static struct sigaction sa;
+static volatile sig_atomic_t collecting;
+static struct rapl_raw_power_counters r_before[MAX_PACKAGES];
+static struct rapl_raw_power_counters r_after[MAX_PACKAGES];
+static struct rapl_power_diff r_diff;
+static volatile double total_package_energy;
 
 static int get_kernel_nr_cpus(void)
 {
@@ -66,6 +77,42 @@ static void init_num_packages(int *cpu_to_use, int nr_cpus)
     //printf("\n");
 }
 
+static void timer_handler(int signum)
+{
+    if (collecting == 0 || !units_ok) {
+        return;
+    }
+
+    int i;
+    for (i = 0; i < num_packages; i++) {
+        rapl_get_raw_power_counters(fd_msr[i], &r_units, &r_after[i]);
+        rapl_get_power_diff(&r_before[i], &r_after[i], &r_diff);
+        r_before[i] = r_after[i];
+
+        if (r_diff.pkg < 0)
+            continue;
+
+        total_package_energy += r_diff.pkg;
+    }
+}
+
+static void init_timer(void)
+{
+    collecting = 0;
+    memset(&sa, 0, sizeof(sa));
+
+    sa.sa_handler = &timer_handler;
+    sigaction(SIGALRM, &sa, NULL);
+
+    struct itimerval timer;
+    timer.it_value.tv_sec = 0;
+    timer.it_value.tv_usec = TICK_INTERVAL * 1000;
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec =  TICK_INTERVAL * 1000;
+
+    setitimer(ITIMER_REAL, &timer, NULL);
+}
+
 void criterion_initrapl(void)
 {
     int nr_cpus = get_kernel_nr_cpus();
@@ -83,24 +130,31 @@ void criterion_initrapl(void)
     }
 
     units_ok = rapl_get_units(fd_msr[0], &r_units);
+    init_timer();
+}
+
+void criterion_startcollectingenergy(void)
+{
+    if (!units_ok) {
+        perror("Invalid units!");
+        return;
+    }
+
+    int i;
+    for (i = 0; i < num_packages; i++) {
+        rapl_get_raw_power_counters(fd_msr[i], &r_units, &r_before[i]);
+    }
+
+    total_package_energy = 0.0;
+    collecting = 1;
 }
 
 double criterion_getpackageenergy(void)
 {
-    if (!units_ok) {
-        perror("Invalid units!");
+    if (!units_ok)
         return -1;
-    }
 
-    struct rapl_raw_power_counters rpc;
-    double total_package_energy = 0.0;
-
-    int i;
-    for (i = 0; i < num_packages; i++) {
-        rapl_get_raw_power_counters(fd_msr[i], &r_units, &rpc);
-        total_package_energy += rpc.pkg;
-    }
-
+    collecting = 0;
     return total_package_energy;
 }
 

@@ -58,18 +58,18 @@ measure (Benchmarkable run) iters = do
   startTime <- getTime
   startCpuTime <- getCPUTime
   startCycles <- getCycles
-  startEnergy <- getEnergy
+  startCollectingEnergy
   run iters
   endTime <- getTime
   endCpuTime <- getCPUTime
   endCycles <- getCycles
-  endEnergy <- getEnergy
+  packageEnergy <- getEnergy
   endStats <- getGCStats
   let !m = applyGCStats endStats startStats $ measured {
              measTime    = max 0 (endTime - startTime)
            , measCpuTime = max 0 (endCpuTime - startCpuTime)
            , measCycles  = max 0 (fromIntegral (endCycles - startCycles))
-           , measEnergy  = max 0 (endEnergy - startEnergy)
+           , measEnergy  = max 0 packageEnergy
            , measIters   = iters
            }
   return (m, endTime)
@@ -214,6 +214,9 @@ foreign import ccall unsafe "criterion_getcputime" getCPUTime :: IO Double
 
 -- | Set up energy measurement.
 foreign import ccall unsafe "criterion_initrapl" initializeRAPL :: IO ()
+
+-- | Start to collect energy data
+foreign import ccall unsafe "criterion_startcollectingenergy" startCollectingEnergy :: IO ()
 
 -- | Return the amount of energy consumed
 foreign import ccall unsafe "criterion_getpackageenergy" getEnergy :: IO Double
