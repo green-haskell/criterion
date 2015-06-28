@@ -80,7 +80,7 @@ void criterion_initrapl(void)
     units_ok = rapl_get_units(fd_msr[0], &r_units);
 }
 
-double criterion_getenergypacket(void)
+double criterion_getpackageenergy(void)
 {
     if (!units_ok) {
         perror("Invalid units!");

@@ -216,7 +216,7 @@ foreign import ccall unsafe "criterion_getcputime" getCPUTime :: IO Double
 foreign import ccall unsafe "criterion_initrapl" initializeRAPL :: IO ()
 
 -- | Return the amount of energy consumed
-foreign import ccall unsafe "criterion_getenergypacket" getEnergy :: IO Double
+foreign import ccall unsafe "criterion_getpackageenergy" getEnergy :: IO Double
 
 -- | Finish energy measurement.
 foreign import ccall unsafe "criterion_finishrapl" finishRAPL :: IO ()
