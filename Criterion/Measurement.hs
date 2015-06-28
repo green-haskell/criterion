@@ -36,7 +36,6 @@ import Data.List (unfoldr)
 import Data.Word (Word64)
 import GHC.Stats (GCStats(..))
 import System.Mem (performGC)
-import System.IO (hPutStrLn, stderr)
 import Text.Printf (printf)
 import qualified Control.Exception as Exc
 import qualified Data.Vector as V
@@ -54,7 +53,7 @@ getGCStats =
 measure :: Benchmarkable        -- ^ Operation to benchmark.
         -> Int64                -- ^ Number of iterations.
         -> IO (Measured, Double)
-measure b@(Benchmarkable run) iters = do
+measure (Benchmarkable run) iters = do
   startStats <- getGCStats
   startTime <- getTime
   startCpuTime <- getCPUTime
@@ -66,23 +65,14 @@ measure b@(Benchmarkable run) iters = do
   endCycles <- getCycles
   endEnergy <- getEnergy
   endStats <- getGCStats
-
-  if endEnergy < startEnergy
-    then do
-      let st = show startEnergy
-          ed = show endEnergy
-          it = show iters
-      hPutStrLn stderr $ "OVERFLOW DETECTED! start: " ++ st ++ ". end: " ++ ed ++ ". niters: " ++ it
-      measure b iters
-    else do
-      let !m = applyGCStats endStats startStats $ measured {
-          measTime    = max 0 (endTime - startTime)
-        , measCpuTime = max 0 (endCpuTime - startCpuTime)
-        , measCycles  = max 0 (fromIntegral (endCycles - startCycles))
-        , measEnergy  = max 0 (endEnergy - startEnergy)
-        , measIters   = iters
-        }
-      return (m, endTime)
+  let !m = applyGCStats endStats startStats $ measured {
+             measTime    = max 0 (endTime - startTime)
+           , measCpuTime = max 0 (endCpuTime - startCpuTime)
+           , measCycles  = max 0 (fromIntegral (endCycles - startCycles))
+           , measEnergy  = max 0 (endEnergy - startEnergy)
+           , measIters   = iters
+           }
+  return (m, endTime)
 {-# INLINE measure #-}
 
 -- | The amount of time a benchmark must run for in order for us to
