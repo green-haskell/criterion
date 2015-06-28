@@ -21,11 +21,8 @@ static int get_kernel_nr_cpus(void)
     return (num_read == 1) ? (nr_cpus + 1) : 1;
 }
 
-void criterion_initrapl(void)
+static void init_num_packages(int *cpu_to_use, int nr_cpus)
 {
-    int nr_cpus = get_kernel_nr_cpus();
-    int cpu_to_use[nr_cpus];
-
     int package;
     char filename[256];
     num_packages = 0;
@@ -38,28 +35,28 @@ void criterion_initrapl(void)
     int j = 0;
     // Detect the amount of packages
     while (1) {
-       sprintf(filename, "/sys/devices/system/cpu/cpu%d/topology/physical_package_id", j);
-       FILE *fff = fopen(filename, "r");
-       if (fff == NULL)
-           break;
+        sprintf(filename, "/sys/devices/system/cpu/cpu%d/topology/physical_package_id", j);
+        FILE *fff = fopen(filename, "r");
+        if (fff == NULL)
+            break;
 
-       int num_read = fscanf(fff, "%d", &package);
-       fclose(fff);
-       if (num_read != 1)
-           break;
+        int num_read = fscanf(fff, "%d", &package);
+        fclose(fff);
+        if (num_read != 1)
+            break;
 
-       // Check if a new package
-       if ((package >= 0) && (package < nr_cpus)) {
-           if (cpu_to_use[package] == -1) {
-               cpu_to_use[package] = j;
-               num_packages++;
-           }
-       } else {
-           perror("Package outside of allowed range\n");
-           break;
-       }
+        // Check if a new package
+        if ((package >= 0) && (package < nr_cpus)) {
+            if (cpu_to_use[package] == -1) {
+                cpu_to_use[package] = j;
+                num_packages++;
+            }
+        } else {
+            perror("Package outside of allowed range\n");
+            break;
+        }
 
-       j++;
+        j++;
     }
 
     //printf("Total packages found: %d\n", num_packages);
@@ -67,7 +64,15 @@ void criterion_initrapl(void)
     //for (i = 0; i < num_packages; i++)
     //    printf("%d%s", cpu_to_use[i], i == (num_packages-1) ? "" : ", ");
     //printf("\n");
+}
 
+void criterion_initrapl(void)
+{
+    int nr_cpus = get_kernel_nr_cpus();
+    int cpu_to_use[nr_cpus];
+    init_num_packages(cpu_to_use, nr_cpus);
+
+    int i;
     for (i = 0; i < num_packages; i++) {
         fd_msr[i] = rapl_open_msr(cpu_to_use[i]);
         if (fd_msr[i] <= 0) {
