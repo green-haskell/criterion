@@ -138,8 +138,19 @@ data Measured = Measured {
     , measCpuTime            :: !Double
       -- ^ Total CPU time elapsed, in seconds.  Includes both user and
       -- kernel (system) time.
-    , measEnergy             :: !Double
+
+        -- <GM>
+    --, measEnergy             :: !Double
       -- ^ Energy consumed
+        -- </GM>
+
+        -- <GM>
+    , measPackageEnergy      :: !Double
+      -- ^ Energy consumed by the package
+    , measDRAMEnergy         :: !Double
+      -- ^ Energy consumed by the DRAM
+        -- </GM>
+
     , measCycles             :: !Int64
       -- ^ Cycles, in unspecified units that may be CPU cycles.  (On
       -- i386 and x86_64, this is measured using the @rdtsc@
@@ -172,12 +183,26 @@ data Measured = Measured {
 
 instance FromJSON Measured where
     parseJSON v = do
-      (a,b,c,d,e,f,g,h,i,j,k,l) <- parseJSON v
-      return $ Measured a b c d e f g h i j k l
+
+        -- <GM>
+      --(a,b,c,d,e,f,g,h,i,j,k,l) <- parseJSON v
+      --return $ Measured a b c d e f g h i j k l
+        -- </GM>
+        -- <GM>
+      (a,b,c,d,e,f,g,h,i,j,k,l,m) <- parseJSON v
+      return $ Measured a b c d e f g h i j k l m
+        -- </GM>
 
 instance ToJSON Measured where
     toJSON Measured{..} = toJSON
-      (measTime, measCpuTime, measEnergy, measCycles, measIters,
+
+        -- <GM>
+      --(measTime, measCpuTime, measEnergy, measCycles, measIters,
+        -- </GM>
+        -- <GM>
+      (measTime, measCpuTime, measPackageEnergy, measDRAMEnergy, measCycles, measIters,
+        -- </GM>
+
        i measAllocated, i measNumGcs, i measBytesCopied,
        d measMutatorWallSeconds, d measMutatorCpuSeconds,
        d measGcWallSeconds, d measMutatorCpuSeconds)
@@ -197,8 +222,18 @@ measureAccessors_ = [
                             "wall-clock time"))
   , ("cpuTime",            (Just . measCpuTime,
                             "CPU time"))
-  , ("energy",             (Just . measEnergy,
-                            "Energy consumed"))
+
+        -- <GM>
+  --, ("energy",             (Just . measEnergy,
+  --                          "Energy consumed"))
+        -- </GM>
+        -- <GM>
+  , ("packageEnergy",      (Just . measPackageEnergy,
+                            "Energy consumed by the Package"))
+  , ("dramEnergy",         (Just . measDRAMEnergy,
+                            "Energy consumed by the DRAM"))
+        -- </GM>
+
   , ("cycles",             (Just . fromIntegral . measCycles,
                             "CPU cycles"))
   , ("iters",              (Just . fromIntegral . measIters,
@@ -235,7 +270,15 @@ rescale :: Measured -> Measured
 rescale m@Measured{..} = m {
       measTime               = d measTime
     , measCpuTime            = d measCpuTime
-    , measEnergy             = d measEnergy
+
+        -- <GM>
+    --, measEnergy             = d measEnergy
+        -- </GM>
+        -- <GM>
+    , measPackageEnergy      = d measPackageEnergy
+    , measDRAMEnergy         = d measDRAMEnergy
+        -- </GM>
+
     , measCycles             = i measCycles
     -- skip measIters
     , measNumGcs             = i measNumGcs
@@ -277,11 +320,21 @@ toDouble (Just d) = d
 
 instance Binary Measured where
     put Measured{..} = do
-      put measTime; put measCpuTime; put measEnergy; put measCycles; put measIters
+        -- <GM>
+      --put measTime; put measCpuTime; put measEnergy; put measCycles; put measIters
+        -- </GM>
+        -- <GM>
+      put measTime; put measCpuTime; put measPackageEnergy; put measDRAMEnergy; put measCycles; put measIters
+        -- </GM>
       put measAllocated; put measNumGcs; put measBytesCopied
       put measMutatorWallSeconds; put measMutatorCpuSeconds
       put measGcWallSeconds; put measGcCpuSeconds
-    get = Measured <$> get <*> get <*> get <*> get <*> get
+        -- <GM>
+    --get = Measured <$> get <*> get <*> get <*> get <*> get
+        -- </GM>
+        -- <GM>
+    get = Measured <$> get <*> get <*> get <*> get <*> get <*> get
+        -- </GM>
                    <*> get <*> get <*> get <*> get <*> get <*> get <*> get
 
 -- | Apply an argument to a function, and evaluate the result to weak

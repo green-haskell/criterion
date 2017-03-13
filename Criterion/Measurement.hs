@@ -20,7 +20,15 @@ module Criterion.Measurement
     , getCycles
     , getGCStats
     , initializeRAPL
-    , getEnergy
+
+        -- <GM>
+    --, getEnergy
+        -- </GM>
+        -- <GM>
+    , getPackageEnergy
+    , getDRAMEnergy
+        -- </GM>
+
     , finishRAPL
     , secs
     , measure
@@ -63,13 +71,29 @@ measure (Benchmarkable run) iters = do
   endTime <- getTime
   endCpuTime <- getCPUTime
   endCycles <- getCycles
-  packageEnergy <- getEnergy
+
+    -- <GM>
+  --packageEnergy <- getEnergy
+    -- </GM>
+    -- <GM>
+  packageEnergy <- getPackageEnergy
+  dramEnergy <- getDRAMEnergy
+    -- </GM>
+
   endStats <- getGCStats
   let !m = applyGCStats endStats startStats $ measured {
              measTime    = max 0 (endTime - startTime)
            , measCpuTime = max 0 (endCpuTime - startCpuTime)
            , measCycles  = max 0 (fromIntegral (endCycles - startCycles))
-           , measEnergy  = max 0 packageEnergy
+
+             -- <GM>
+           --, measEnergy  = max 0 packageEnergy
+             -- </GM>   
+             -- <GM>
+           , measPackageEnergy  = max 0 packageEnergy
+           , measDRAMEnergy     = max 0 dramEnergy
+             -- </GM>
+
            , measIters   = iters
            }
   return (m, endTime)
@@ -140,7 +164,14 @@ measured = Measured {
     , measCpuTime            = 0
     , measCycles             = 0
     , measIters              = 0
-    , measEnergy             = 0
+
+        -- <GM>
+    --, measEnergy             = 0
+        -- </GM>
+        -- <GM>
+    , measPackageEnergy      = 0
+    , measDRAMEnergy         = 0
+        -- </GM>
 
     , measAllocated          = minBound
     , measNumGcs             = minBound
@@ -218,8 +249,19 @@ foreign import ccall unsafe "criterion_initrapl" initializeRAPL :: IO ()
 -- | Start to collect energy data
 foreign import ccall unsafe "criterion_startcollectingenergy" startCollectingEnergy :: IO ()
 
+    -- <GM>
 -- | Return the amount of energy consumed
-foreign import ccall unsafe "criterion_getpackageenergy" getEnergy :: IO Double
+--foreign import ccall unsafe "criterion_getpackageenergy" getEnergy :: IO Double
+    -- </GM>
+
+    -- <GM>
+-- | Return the amount of energy consumed by the package
+foreign import ccall unsafe "criterion_getpackageenergy" getPackageEnergy :: IO Double
+    -- </GM>
+    -- <GM>
+-- | Return the amount of energy consumed by the DRAM
+foreign import ccall unsafe "criterion_getdramenergy" getDRAMEnergy :: IO Double
+    -- </GM>
 
 -- | Finish energy measurement.
 foreign import ccall unsafe "criterion_finishrapl" finishRAPL :: IO ()

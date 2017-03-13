@@ -18,7 +18,11 @@ static volatile sig_atomic_t collecting;
 static struct rapl_raw_power_counters r_before[MAX_PACKAGES];
 static struct rapl_raw_power_counters r_after[MAX_PACKAGES];
 static struct rapl_power_diff r_diff;
+
 static volatile double total_package_energy;
+    // <GM>
+static volatile double total_dram_energy = 0.0;
+    // </GM>
 
 static int get_kernel_nr_cpus(void)
 {
@@ -89,11 +93,29 @@ static void timer_handler(int signum)
         rapl_get_power_diff(&r_before[i], &r_after[i], &r_diff);
         r_before[i] = r_after[i];
 
+            // <GM>
+        /*
         if (r_diff.pkg < 0)
             continue;
 
         total_package_energy += r_diff.pkg;
+        */
+            // </GM>
+
+            // <GM>
+        if (r_diff.pkg >= 0) {
+            total_package_energy += r_diff.pkg;
+
+        }
+
+        if (r_diff.dram >= 0) {
+            total_dram_energy += r_diff.dram;
+
+        }
+            // </GM>
+
     }
+
 }
 
 static void init_timer(void)
@@ -146,6 +168,11 @@ void criterion_startcollectingenergy(void)
     }
 
     total_package_energy = 0.0;
+
+        // <GM>
+    total_dram_energy = 0.0;
+        // </GM>
+
     collecting = 1;
 }
 
@@ -157,6 +184,19 @@ double criterion_getpackageenergy(void)
     collecting = 0;
     return total_package_energy;
 }
+
+
+    // <GM>
+double criterion_getdramenergy(void)
+{
+    if (!units_ok)
+        return -1;
+
+    collecting = 0;
+    return total_dram_energy;
+}
+    // </GM>
+
 
 void criterion_finishrapl(void)
 {

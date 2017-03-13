@@ -100,7 +100,15 @@ formatReport reports template = do
                            "number"   -> return $ MuVariable reportNumber
                            "iters"    -> return $ vector "x" iters
                            "times"    -> return $ vector "x" times
-                           "energy"   -> return $ vector "x" energy
+
+                               -- <GM>
+                           --"energy"   -> return $ vector "x" energy
+                               -- </GM>         
+                               -- <GM>         
+                           "packageEnergy"   -> return $ vector "x" packageEnergy
+                           "dramEnergy"      -> return $ vector "x" dramEnergy
+                               -- </GM>
+         
                            "cycles"   -> return $ vector "x" cycles
                            "kdetimes" -> return $ vector "x" kdeValues
                            "kdepdf"   -> return $ vector "x" kdePDF
@@ -112,7 +120,15 @@ formatReport reports template = do
           where [KDE{..}]   = reportKDEs
                 iters       = measure measIters reportMeasured
                 times       = measure measTime reportMeasured
-                energy      = measure measEnergy reportMeasured
+
+                    -- <GM>
+                --energy      = measure measEnergy reportMeasured
+                    -- </GM>
+                    -- <GM>
+                packageEnergy   = measure measPackageEnergy reportMeasured
+                dramEnergy      = measure measDRAMEnergy reportMeasured
+                    -- </GM>
+
                 cycles      = measure measCycles reportMeasured
       config = H.defaultConfig {
                  H.muEscapeFunc = H.emptyEscape
